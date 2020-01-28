@@ -48,3 +48,5 @@ function main(params) {
     
     return params
 }
+
+console.log("hello world");
