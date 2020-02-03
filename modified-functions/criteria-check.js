@@ -8,7 +8,8 @@
   *
   */
 function main(params) {
-	const VALID_REPOS = [ 
+    const VALID_REPOS = [ 
+                        'nfstein/git-sandbox',
                         'IBM/mean-app',
                         'IBM/mern-app',
                         'IBM/swift-kitura-app',
@@ -29,7 +30,7 @@ function main(params) {
                     ]
 
     const master = 'refs/heads/master'
-    const stage1 = 'refs/heads/stage1'
+    const development = 'refs/heads/development'
     
     // repo name and urls
     const repoFullName = params.repository.full_name
@@ -41,12 +42,10 @@ function main(params) {
     if (!VALID_REPOS.includes(repoFullName)) {
         return { error: 'Not a valid repository: ' + repoFullName }
     }
-    if (params.ref !== master ) { //&& params.ref !== stage1) {
+    if (params.ref !== master && params.ref !== development) {
         console.log("Ref: "+ params.ref)
         return { error: 'Not a change to master - exiting registration' }
     }
     
     return params
 }
-
-console.log("hello world");
