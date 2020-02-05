@@ -48,4 +48,4 @@ if (params.ref !== master && params.ref !== development) {
     return { error: 'Not a change to master - exiting registration' }
 }
 
-return params
+//return params
