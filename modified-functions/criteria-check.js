@@ -41,11 +41,11 @@ console.log("Registration request recieved for pattern: " + repoFullName)
 
 // Early-out conditions - invalid repos & non-master branches
 if (!VALID_REPOS.includes(repoFullName)) {
-    return { error: 'Not a valid repository: ' + repoFullName }
+    //return { error: 'Not a valid repository: ' + repoFullName }
 }
 if (params.ref !== master && params.ref !== development) {
     console.log("Ref: "+ params.ref)
-    return { error: 'Not a change to master - exiting registration' }
+    //return { error: 'Not a change to master - exiting registration' }
 }
 
 //return params
