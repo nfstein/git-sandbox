@@ -31,6 +31,8 @@ const VALID_REPOS = [
 const master = 'refs/heads/master'
 const development = 'refs/heads/development'
 
+console.log("in git")
+
 // repo name and urls
 const repoFullName = params.repository.full_name
 
