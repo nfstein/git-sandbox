@@ -5,4 +5,4 @@ place for testing commit schemes
 
 development
 
-with reed's change
+with reed's new change
