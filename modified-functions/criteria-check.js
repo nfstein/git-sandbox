@@ -31,21 +31,22 @@ const VALID_REPOS = [
 const master = 'refs/heads/master'
 const development = 'refs/heads/development'
 
-console.log("in git")
+params.log += "in git \n"
 
 // repo name and urls
 const repoFullName = params.repository.full_name
 
-console.log("Registration request recieved for pattern: " + repoFullName)
+params.log += "Registration request recieved for pattern: " + repoFullName + "\n"
 
 
 // Early-out conditions - invalid repos & non-master branches
 if (!VALID_REPOS.includes(repoFullName)) {
-    //return { error: 'Not a valid repository: ' + repoFullName }
+    throw new error('Not a valid repository: ' + repoFullName)
 }
 if (params.ref !== master && params.ref !== development) {
-    console.log("Ref: "+ params.ref)
-} else {
- params
-}
+    throw new error('Ref: ' + params.ref)
+} 
+
+params
+
  
