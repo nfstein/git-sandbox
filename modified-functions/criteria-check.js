@@ -45,7 +45,7 @@ if (!VALID_REPOS.includes(repoFullName)) {
 }
 if (params.ref !== master && params.ref !== development) {
     console.log("Ref: "+ params.ref)
-    //return { error: 'Not a change to master - exiting registration' }
+} else {
+ params
 }
-
-return params
+ 
