@@ -1,3 +1,5 @@
+'use strict';
+
 /**
   *
   * main() will be run when you invoke this action
@@ -9,21 +11,21 @@
   */
 function main(params) {
     
-    const rp = require('request-promise') 
-    const Promise = require('bluebird')
-    const itm = require('@ibm-functions/iam-token-manager')
+    const rp = require('request-promise');
+    const Promise = require('bluebird');
+    const itm = require('@ibm-functions/iam-token-manager');
     
     // repo name and urls
-    const repoFullName = params.repository.full_name
-    const repoName     = params.repository.name
-    const apiURL       = params.repository.url
-    const htmlURL      = params.repository.html_url
-    const apikey       = params.apikey
+    const repoFullName = params.repository.full_name;
+    const repoName     = params.repository.name;
+    const apiURL       = params.repository.url;
+    const htmlURL      = params.repository.html_url;
+    const apikey       = params.apikey;
+    const branchName   = params.ref.split("/").pop();
     
     delete params.apikey // delete apikey so it does not show up in the logs.
       
-    console.log("Registration request processing for pattern: " + repoFullName)
-    
+    console.log("Registration request processing for pattern: " + repoFullName);
     
     // get IAM token
     const m = new itm({
@@ -32,39 +34,48 @@ function main(params) {
     return m.getToken().then(token => {
 
         // construct requests to registry endpoint
-        var data = dictionary(repoName)
-        var name = data.name
-        var toolchain = data.toolchain || [ "CF", "KUBE", "KNATIVE" ] // to accomodate serverless and knative
-        var capabilities = data.capabilities || []
-        var plans = data.plans || {}
-
+        var data = dictionary(repoName);
+        
         var payload = {
             "blueprint": {
                 "description": data.description,
                 "name": data.name,
                 "platform": data.platform,
-                "toolchain": toolchain,
+                "toolchain": data.toolchain || [ "CF", "KUBE", "KNATIVE" ], // to accomodate serverless and knative
                 "type": "PATTERN",
-                "requiredCapabilities": capabilities,
-                "servicePlans": plans
+                "requiredCapabilities": data.capabilities || [],
+                "servicePlans": data.plans || {}
              },
+            "branch": branchName,
             "repoURL": apiURL
+        }
+
+        if (branchName !== "master") {
+            let prefixName = (branchName.length > 3) ? branchName.slice(0,3) : branchName;
+            payload.blueprint.name = prefixName + " - " + payload.blueprint.name;
+            payload.blueprint.tag = ["devex"];
         }
         
          // Send payload to global endpoint
         var options = {
             method: 'POST',
-            uri: `https://global.devx.cloud.ibm.com:443/registry/api/blueprints`,
+            uri: params.uri,
             headers: {
               'Authorization': `Bearer ${token}`
             },
             body: payload,
             json: true
         }
+        
+        console.log("sent: ")
+        console.log(JSON.stringify(options))
           
         // Parse response to get job id
         return rp(options)
             .then(response => {
+                console.log("received: ")
+                console.log(JSON.stringify(response))
+
                 var id = response.job.ids[0]
                 params.blueprintid = id
                 console.log("Codegen Response: Blueprint ID: " + id)
@@ -110,7 +121,6 @@ function dictionary(name) {
             result.name = 'Node-RED'
             result.description = 'A starter to run the Node-RED open-source project on IBM Cloud.'
             result.platform = 'node'
-            result.toolchain = ["CF", "KUBE" ]
             result.capabilities = ["cloudant"]
             result.plans = {
                 "cloudant": "Lite"
@@ -126,26 +136,6 @@ function dictionary(name) {
             result.description = 'A pattern for setting up a mongodb, express, react and node application'
             result.platform = 'node'
             break;
-        case 'nodejs-react-app':
-            result.name = 'Node.js Web App with Express.js and React'
-            result.description = 'A pattern that provides a rich React frontend via a Node.js application, including key web development tools.'
-            result.platform = 'node'
-            break;
-        /*case 'nodejs-starter':
-            result.name = 'Basic Node.js App'
-            result.description = 'A simple pattern for a cloud native Node.js application.'
-            result.platform = 'node'
-            break;
-        case 'nodejs-microservice':
-            result.name = 'Node.js Microservice with Express.js'
-            result.description = 'A pattern for building a microservice backend in Node.js, using the Express.js framework.'
-            result.platform = 'node'
-            break;
-        case 'nodejs-web-app':
-            result.name = 'Node.js Web App with Express.js'
-            result.description = 'A pattern that provides a basic web serving application in Node.js, using the Express.js framework.'
-            result.platform = 'node'
-            break;*/
         case 'nodejs-cloudant':
             result.name = 'Node.js + Cloudant'
             result.description = 'A web application with Node.js and Cloudant'
@@ -155,86 +145,11 @@ function dictionary(name) {
                 "cloudant": "Lite"
             }
             break;
-        /*case 'spring-starter':
-            result.name = 'Basic Spring App'
-            result.description = 'A simple pattern for a cloud native Spring application.'
-            result.platform = 'spring'
-            break;
-        case 'spring-microservice':
-            result.name = 'Java Microservice with Spring'
-            result.description = 'A pattern for building a microservice backend in Java, using the Spring framework.'
-            result.platform = 'spring'
-            break;
-        case 'spring-web-app':
-            result.name = 'Java Web App with Spring'
-            result.description = 'A pattern that provides a basic web serving application in Java, using the Spring framework.'
-            result.platform = 'spring'
-            break;
-        case 'java-liberty-starter':
-            result.name = 'Basic Java App'
-            result.description = 'A simple pattern for a cloud native Java application.'
-            result.platform = 'java'
-            break;
-        case 'java-liberty-microservice':
-            result.name = 'Java Microservice with Eclipse MicroProfile and Java EE'
-            result.description = 'A pattern for building a microservice backend in Java, using the MicroProfile / Java EE framework.'
-            result.platform = 'java'
-            break;
-        case 'java-liberty-web-app':
-            result.name = 'Java Web App with Eclipse MicroProfile and Java EE'
-            result.description = 'A pattern that provides a basic web serving application in Java, using the MicroProfile / Java EE framework.'
-            result.platform = 'java'
-            break;
-        case 'flask-starter':
-            result.name = 'Basic Flask App'
-            result.description = 'A simple pattern for a cloud native Python Flask application.'
-            result.platform = 'python'
-            break;
-        case 'flask-microservice':
-            result.name = 'Python Microservice with Flask'
-            result.description = 'A pattern for building a microservice backend, using the Flask framework.'
-            result.platform = 'python'
-            break;
-        case 'flask-web-app':
-            result.name = 'Python Web App with Flask'
-            result.description = 'A pattern that provides a basic web serving application using the Flask framework.'
-            result.platform = 'python'
-            break;
-        case 'django-web-app':
-            result.name = 'Python Web App with Django'
-            result.description = 'A pattern for building a basic web serving application, using the Django framework.'
-            result.platform = 'django'
-            break;
-        case 'go-starter':
-            result.name = 'Basic Go App'
-            result.description = 'A simple pattern for a cloud native Go application.'
-            result.platform = 'go'
-            break;
-        case 'go-microservice':
-            result.name = 'Go Microservice with Gin'
-            result.description = 'A pattern for building a microservice backend, using the Gin framework.'
-            result.platform = 'go'
-            break;
-        case 'go-web-app':
-            result.name = 'Go Web App with Gin'
-            result.description = 'A pattern that provides a basic web serving application in Go, using the Gin framework.'
-            result.platform = 'go'
-            break;*/
         case 'swift-kitura-hyper-protect-dbaas':
             result.name = 'Backend for IBM Hyper Protect Services'
             result.description = 'A pattern to create a Swift backend that accelerates consumption of Hyper Protect Services.'
             result.platform = 'swift'
             break;
-        /*case 'swift-starter':
-            result.name = 'Basic Swift App'
-            result.description = 'A simple pattern for a cloud native Swift application.'
-            result.platform = 'swift'
-            break;
-        case 'swift-web-app':
-            result.name = 'Swift for Web App Serving'
-            result.description = 'A pattern that provides a basic web serving application in Swift, using the Kitura framework.'
-            result.platform = 'swift'
-            break;*/
         case 'knative-eventing-java-app':
             result.name = 'Knative Eventing with Cloud Events';
             result.description = 'A pattern for building a Knative Eventing application in Java, using the Spring and Cloud Events frameworks with a Cloudant database.';
@@ -245,6 +160,81 @@ function dictionary(name) {
                 "cloudant": "Lite"
             }
             break;
+        case 'java-liberty-app':
+            result.name = 'Java Liberty App'
+            result.description = 'Start building your next Java Liberty app on IBM Cloud.'
+            result.platform = 'java'
+            break;
+        case 'java-spring-app':
+            result.name = 'Java Spring App'
+            result.description = 'Start building your next Java Spring app on IBM Cloud.'
+            result.platform = 'spring'
+            break;
+        case 'nodejs-express-app':
+            result.name = 'Node.js Express App'
+            result.description = 'Start building your next Node.js Express app on IBM Cloud.'
+            result.platform = 'node'
+            break;
+        case 'swift-kitura-app':
+            result.name = 'Swift Kitura App'
+            result.description = 'Start building your next Swift Kitura app on IBM Cloud.'
+            result.platform = 'swift'
+            break;
+        case 'python-django-app':
+            result.name = 'Python Django App'
+            result.description = 'Start building your next Python Django app on IBM Cloud.'
+            result.platform = 'django'
+            break;
+        case 'python-flask-app':
+            result.name = 'Python Flask App'
+            result.description = 'Start building your next Python Flask app on IBM Cloud.'
+            result.platform = 'python'
+            break;
+        case 'go-gin-app':
+            result.name = 'Go Gin App'
+            result.description = 'Start building your next Go Gin app on IBM Cloud.'
+            result.platform = 'go'
+            break;
+        case 'natural-language-understanding-code-pattern'
+            result.name = 'Natural Language Understanding Node.js App'
+            result.description = 'Use Watson Natural Language Understanding to analyze text to help you understand its concepts, entities, keywords, sentiment, and more.'
+            result.platform = 'node'
+            result.toolchain = [ "CF", "KUBE" ]
+            result.capabilities = ["naturalLanguageUnderstanding"]
+            result.plans = {
+                "naturalLanguageUnderstanding": "lite"
+            }
+            break;
+        case 'speech-to-text-code-pattern':
+            result.name = 'Speech to Text Node.js App'
+            result.description = 'React app using the Watson Speech to Text service to transform voice audio into written text.'
+            result.platform = 'node'
+            result.toolchain = [ "CF", "KUBE" ]
+            result.capabilities = ["speechToText"]
+            result.plans = {
+                "speechToText": "lite"
+            }
+            break;
+        case 'visual-recognition-code-pattern':
+            result.name = 'Visual Recognition Node.js App'
+            result.description = 'React app using the Watson Visual Recognition service to analyze images for scenes, objects, text, and other subjects.'
+            result.platform = 'node'
+            result.toolchain = [ "CF", "KUBE" ]
+            result.capabilities = ["visualRecognition"]
+            result.plans = {
+                "visualRecognition": "lite"
+            }
+            break;
+        case 'text-to-speech-code-pattern':
+            result.name = 'Text to Speech Node.js App'
+            result.description = 'React app using the Watson Text to Speech service to transform text into audio.'
+            result.platform = 'node'
+            result.toolchain = [ "CF", "KUBE" ]
+            result.capabilities = ["textToSpeech"]
+            result.plans = {
+                "textToSpeech": "lite"
+            }
+            break;  
     }
     
     return result        
